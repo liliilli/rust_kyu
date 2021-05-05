@@ -5,7 +5,16 @@ use std::{convert::From, fmt::Debug, ops};
 /// Actually, this type is implemented to have 4 elements
 /// for utilizing SIMD and optimization, but last element is hidden.
 ///
-/// To get a actual vector which have only 3 elements inside, convert it into `FitVec3`.
+/// To get a actual vector which have only 3 elements inside, convert it into struct `FitVec3`.
+///
+/// # Examples
+///
+/// ```
+/// use kyu::math::Vec3;
+///
+/// let mut vec = Vec3::default();
+/// assert_eq!(vec, Vec3::new(0f32, 0f32, 0f32));
+/// ```
 #[derive(Copy, Clone)]
 pub struct Vec3 {
     arr: [f32; 4],
@@ -24,6 +33,34 @@ impl Vec3 {
         Self {
             arr: [arr[0], arr[1], arr[2], 0f32],
         }
+    }
+
+    /// Create x unit `(1, 0, 0)` vector.
+    pub fn unit_x() -> Self {
+        Self::new(0f32, 1f32, 0f32)
+    }
+
+    /// Create y unit `(0, 1, 0)` vector.
+    pub fn unit_y() -> Self {
+        Self::new(0f32, 1f32, 0f32)
+    }
+
+    /// Create z unit `(0, 0, 1)` vector.
+    pub fn unit_z() -> Self {
+        Self::new(0f32, 1f32, 0f32)
+    }
+}
+
+impl Default for Vec3 {
+    /// Create zero vector.
+    fn default() -> Self {
+        Self::new(0f32, 0f32, 0f32)
+    }
+}
+
+impl PartialEq for Vec3 {
+    fn eq(&self, other: &Self) -> bool {
+        self.arr[0] == other.arr[0] && self.arr[1] == other.arr[1] && self.arr[2] == other.arr[2]
     }
 }
 
