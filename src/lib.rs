@@ -1,19 +1,23 @@
+pub mod math;
+
 ///
 ///
 ///
 pub fn create_uv_sphere_vertices(
     slice_count: u32,
     stack_count: u32,
-) -> Option<Vec<(f32, f32, f32)>> {
+) -> Option<(Vec<(f32, f32, f32)>, Vec<(f32, f32)>)> {
     use std::f32::consts::PI;
     if slice_count < 3 || stack_count < 2 {
         return None;
     }
 
     let mut vertices: Vec<(f32, f32, f32)> = vec![];
+    let mut thetaphis: Vec<(f32, f32)> = vec![];
 
     // Add top vertex as [0].
     vertices.push((0f32, 1f32, 0f32));
+    thetaphis.push((0f32, 0f32));
 
     // Add vertices using slice (longitude (vertical)) and stack (latitude (parallel)).
     // [1.. E := slice*(stack-1)].
@@ -26,26 +30,22 @@ pub fn create_uv_sphere_vertices(
             let y = lat_rad.cos();
             let z = lat_rad.sin() * lng_rad.cos();
             vertices.push((x, y, z));
+            thetaphis.push((lng_rad, lat_rad));
         }
+        thetaphis.push((2f32 * PI, lat_rad));
     }
 
     // Add bottom bertex as [E+1].
     vertices.push((0f32, -1f32, 0f32));
-    Some(vertices)
+    thetaphis.push((0f32, 1f32));
+    Some((vertices, thetaphis))
 }
 
-///
-///
-///
-pub fn create_uv_sphere(
+fn create_uv_sphere_faces_from(
     slice_count: u32,
     stack_count: u32,
-) -> Option<(Vec<(f32, f32, f32)>, Vec<u32>)> {
-    if slice_count < 3 || stack_count < 2 {
-        return None;
-    }
-
-    let vertices = create_uv_sphere_vertices(slice_count, stack_count).unwrap();
+    vertices: &Vec<(f32, f32, f32)>,
+) -> Vec<u32> {
     let mut indices: Vec<u32> = vec![];
 
     // Make triangles neighboring to top[0].
@@ -82,12 +82,30 @@ pub fn create_uv_sphere(
     for i1 in 0..slice_count {
         let i2 = (i1 + 1) % slice_count;
 
-        indices.push(vertices.len() as u32 - 1);
         indices.push(start + i1 - 1);
+        indices.push(vertices.len() as u32 - 1);
         indices.push(start + i2 - 1);
     }
 
-    Some((vertices, indices))
+    indices
+}
+
+///
+///
+///
+pub fn create_uv_sphere(
+    slice_count: u32,
+    stack_count: u32,
+) -> Option<(Vec<(f32, f32, f32)>, Vec<(f32, f32, f32)>, Vec<u32>)> {
+    if slice_count < 3 || stack_count < 2 {
+        return None;
+    }
+
+    let (vertices, _thetaphis) = create_uv_sphere_vertices(slice_count, stack_count).unwrap();
+    let normals = vertices.clone();
+    let indices = create_uv_sphere_faces_from(slice_count, stack_count, &vertices);
+
+    Some((vertices, normals, indices))
 }
 
 #[cfg(test)]
@@ -100,7 +118,7 @@ mod test {
         use std::io::Write;
         use std::path::Path;
 
-        let (vertices, indices) = create_uv_sphere(32, 32).unwrap();
+        let (vertices, normals, indices) = create_uv_sphere(16, 16).unwrap();
         assert!(
             indices.len() % 3 == 0,
             "Created indices must be matched to a multiplier of 3."
@@ -120,10 +138,21 @@ mod test {
                 writeln!(file, "v {:.5} {:.5} {:.5}", x, y, z).unwrap();
             }
 
+            // Normals.
+            writeln!(file, "").unwrap();
+            writeln!(file, "# Normal list").unwrap();
+            for normals in &normals {
+                let (x, y, z) = normals;
+                writeln!(file, "vn {:.5} {:.5} {:.5}", x, y, z).unwrap();
+            }
+
             // Indices (face)
+            writeln!(file, "").unwrap();
             writeln!(file, "# Face list").unwrap();
             for f in indices.chunks(3) {
-                writeln!(file, "f {} {} {}", f[0] + 1, f[1] + 1, f[2] + 1).unwrap();
+                let (v1, v2, v3) = (f[0] + 1, f[1] + 1, f[2] + 1);
+                let (vn1, vn2, vn3) = (v1, v2, v3);
+                writeln!(file, "f {}//{} {}//{} {}//{}", v1, vn1, v2, vn2, v3, vn3).unwrap();
             }
         }
     }
