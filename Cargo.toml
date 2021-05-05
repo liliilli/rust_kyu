@@ -1,0 +1,46 @@
+[package]
+name = "kyu"
+version = "0.0.1"
+authors = ["Jongmin Yun <jmyundev@gmail.com>"]
+edition = "2018"
+description = "Toy library for creating and exporting various sphere meshes."
+license = "GPL-3.0-or-later"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name = "kyu"
+path = "src/lib.rs"
+doctest = true
+bench = true
+doc = true
+harness = true
+edition = "2018"
+crate-type = ["lib"]
+
+[dependencies]
+
+
+[profile.dev]
+opt-level = 0
+debug = true
+lto = false
+debug-assertions = true
+overflow-checks = true
+panic = "abort"
+
+[profile.test]
+opt-level = 0
+debug = 2
+lto = false
+debug-assertions = true
+overflow-checks = true
+panic = "abort"
+
+[profile.release]
+opt-level = 3
+debug = false
+debug-assertions = false
+overflow-checks = false
+lto = true
+panic = "abort"
+incremental = true
